@@ -255,7 +255,9 @@ Wed Jan  8 18:24:27 UTC 2025
 fatal: unable to access 'https://github.com/synaptics-astra-demos/sl2610-examples/': SSL certificate problem: certificate is not yet valid
 ```
 
-Time sync is running but gave up before the network existed. Restart it:
+Time sync is running but gave up before the network existed. Restart it.
+(Reported upstream as
+[sl2610-examples#13](https://github.com/synaptics-astra-demos/sl2610-examples/issues/13).)
 
 ```bash
 adb shell systemctl restart systemd-timesyncd

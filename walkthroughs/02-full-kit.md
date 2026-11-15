@@ -11,10 +11,11 @@ and talk to it.
 **You need:** a board that finished [walkthrough 1](01-zero-to-first-ai.md), plus:
 
 - AMPAK AP12611_M2 Wi-Fi/Bluetooth module (M.2 2230, E-key) and its antenna
-- Arducam B0033 camera (OV5647). Use the **orange 15-to-22-pin cable** that
-  comes with it, not the white 15-to-15: wide end on the camera, narrow end on
-  the board.
-- Sense add-on
+- Sense add-on. **It apparently includes a camera** (to confirm which sensor
+  and cable), which may make the separate camera below unnecessary.
+- Arducam B0033 camera (OV5647), if the Sense camera doesn't cover it. Use the
+  **orange 15-to-22-pin cable** that comes with it, not the white 15-to-15:
+  wide end on the camera, narrow end on the board.
 
 ## Planned steps
 
