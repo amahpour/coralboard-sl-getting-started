@@ -164,9 +164,10 @@ Filesystem                Size      Used Available Use% Mounted on
 /dev/mmcblk2p18           9.0G    183.5M      8.3G   2% /home
 ```
 
-This is Yocto Linux, not Ubuntu: no `apt`, and many commands are the smaller
-BusyBox versions. And `/` is **98% full out of the box**. Everything you add
-goes in `/home/root`. ([K3](../README.md#k3))
+This is Yocto Linux (Poky 5.0.9, "scarthgap"), not Ubuntu. Many commands are
+the smaller BusyBox versions. There is an `apt`, but it only sees Synaptics'
+own package feed, and it installs to `/`, which is **98% full out of the box**.
+Everything you add goes in `/home/root`. ([K3](../README.md#k3))
 
 ---
 
