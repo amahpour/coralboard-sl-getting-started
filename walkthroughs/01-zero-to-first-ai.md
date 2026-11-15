@@ -39,6 +39,7 @@ Two things catch almost everyone:
    a flashed card it never shows up on USB at all, with no error anywhere.
 2. **Your PC has to share its network.** The USB link comes up, but nothing on
    it hands out an address until you tell the host to.
+   ([Known issue K1](../README.md#k1))
 
 ---
 
@@ -266,8 +267,7 @@ fatal: unable to access 'https://github.com/synaptics-astra-demos/sl2610-example
 ```
 
 Time sync is running but gave up before the network existed. Restart it.
-(Reported upstream as
-[sl2610-examples#13](https://github.com/synaptics-astra-demos/sl2610-examples/issues/13).)
+([Known issue K2](../README.md#k2))
 
 ```bash
 adb shell systemctl restart systemd-timesyncd
@@ -305,7 +305,7 @@ This is Yocto Linux, not Ubuntu: there's no `apt`, and many commands are the
 smaller BusyBox versions (`head -n 8`, not `head -8`; no `timeout`).
 
 Look at `/`: **98% full out of the box, 33 MB free.** Everything you add has to
-go in `/home/root`, which has 8 GB free.
+go in `/home/root`, which has 8 GB free. ([Known issue K3](../README.md#k3))
 
 ---
 

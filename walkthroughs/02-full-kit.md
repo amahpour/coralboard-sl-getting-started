@@ -194,7 +194,7 @@ ssh root@192.168.68.109
 ```
 
 > **Security:** `root` has **no password** on the stock image, so anyone on
-> your network can log in. Set one with `passwd` on the board if your network
+> your network can log in ([K7](../README.md#k7)). Set one with `passwd` on the board if your network
 > isn't just yours.
 
 ---
@@ -216,9 +216,10 @@ pip install -r requirements.txt && python setup_demo.py
 [INFO    ] utils.model_setup: object_detection model files for version latest ready at '/home/root/sl2610-examples/models/Synaptics/yolov26n_od'
 ```
 
-Note the model: the example's README describes YOLOv8, but `setup_demo.py`
-fetched `yolov26n_od` at whatever its latest version is. Your copy may differ
-from ours.
+Those are the last two lines. `setup_demo.py` downloads two sets of models:
+YOLOv8 nano (`yolov8-od-nano-320-int8-torq`), which the demo uses by default,
+and YOLO26 n/s (`yolov26n_od`), fetched at whatever its latest version is and
+only used if you pass it with `--model`.
 
 Run it on the camera, saving the annotated video:
 
@@ -250,6 +251,7 @@ Two things that differ from the example's README:
 - The README's command for the Sensor HAT camera adds `--rotate 180`. That's
   meant for its portrait display setup. With the camera mounted as in Step 1,
   it turns the picture upside down, so leave it off.
+  ([Known issue K5](../README.md#k5))
 - Stop the demo with Ctrl+C in the foreground. If you start it in the
   background (with `&`), it ignores Ctrl+C and the saved video is never
   finished (`moov atom not found` when you try to play it).
@@ -304,7 +306,7 @@ input device to use. These are the choices:
 
 Pick the `(hw:0,2)` entry. It records fine at the 16 kHz the speech models
 want. **`default` hangs** and never returns audio, even though the demos'
-READMEs show it as the choice.
+READMEs show it as the choice. ([Known issue K4](../README.md#k4))
 
 <!-- TODO: run speech_to_text / gemma_translate voice mode with hw:0,2 and capture output. -->
 
