@@ -21,6 +21,11 @@ and talk to it.
 
 1. **Shut down and assemble** (`adb shell poweroff` first): Wi-Fi module into
    M.2 and screw it down, camera onto the CSI port, Sense add-on on top.
+   Per [Google's guide](https://developers.google.com/coral/products/SL2610-get-started),
+   the CSI connector sits **between the two halves of the mikroBUS socket**,
+   on the same side as the other user connectors. The camera mounts on the
+   add-on (four M1.6 screws), facing up and out, with the flex cable folded
+   under the add-on.
 2. **Check what Linux sees:** `wlan0` appears; the `ov5647` driver binds on
    `i2c-3` at 0x36 (the device tree already expects it); the Sense mics show up
    as an ALSA capture device (unverified: the demos' READMEs ask for a USB mic).
