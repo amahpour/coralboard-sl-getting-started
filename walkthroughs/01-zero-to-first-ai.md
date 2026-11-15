@@ -201,7 +201,17 @@ The quick way is the helper in this repo, which does the three steps below:
 scripts/share-usb-network.sh
 ```
 
-<!-- TODO: capture the script's own output on the next bring-up and paste it here. -->
+```
+==> Host: sharing network on enx0a38efc435e2
+    host address: 10.42.0.1/24
+==> Board: waiting for ADB
+==> Board: requesting a DHCP lease on usb0
+    udhcpc: lease of 10.42.0.28 obtained from 10.42.0.1, lease time 3600
+==> Board: syncing the clock
+    board time: Sun Nov 15 21:26:48 UTC 2026
+==> Board: checking internet
+    online
+```
 
 Here's what it does, and what each part looks like.
 
