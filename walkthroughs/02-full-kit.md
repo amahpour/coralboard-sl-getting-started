@@ -1,11 +1,12 @@
 # Walkthrough 2 — The full kit
 
 Add the parts that take the Coralboard beyond a sample image: Wi-Fi, the
-camera, and the Sense add-on's microphones. Then run object detection on the
-live camera.
+camera, and the Sense add-on's microphones. Then get off the USB cable onto
+Wi-Fi, run object detection on the live camera, and talk to the board.
 
 Every block of output is real, captured from a bring-up on 2026-11-15. Long
-outputs are trimmed where marked with `…`.
+outputs are trimmed where marked with `…`. Each command says where it runs:
+**PC** is your Linux machine, **board** is a shell on the Coralboard.
 
 **Time:** about 30 minutes.
 **You need:** a board that finished [walkthrough 1](01-zero-to-first-ai.md),
@@ -17,9 +18,21 @@ plus:
 
 ---
 
-## Step 1 — Shut down and assemble
+## Step 1 — What's in the box
 
-Shut the board down before plugging anything into it:
+| Part | What it adds |
+|---|---|
+| AP12611_M2 module and antenna | Wi-Fi and Bluetooth, so the board can leave your desk |
+| Sense add-on | A camera (OV5647), two PDM microphones, RGB LEDs and a buzzer |
+
+The Sense add-on is the retail version of the Sensor HAT Google handed out at
+I/O.
+
+---
+
+## Step 2 — Put it together
+
+**PC:** shut the board down before plugging anything into it:
 
 ```bash
 adb shell poweroff
@@ -39,11 +52,11 @@ Plug USB-C back in and wait for the red heartbeat.
 
 ---
 
-## Step 2 — Get back online
+## Step 3 — What Linux sees
 
-The board's USB network link comes up with a new name on your PC every boot
-(ours went from `enx5a176425fae1` to `enx0a38efc435e2`), so use the helper
-from this repo rather than retyping the `nmcli` command:
+**PC:** get back online. The board's USB network link comes up with a new name
+on your PC every boot (ours went from `enx5a176425fae1` to `enx0a38efc435e2`),
+so use the helper from this repo rather than retyping the `nmcli` command:
 
 ```bash
 scripts/share-usb-network.sh
@@ -61,9 +74,8 @@ scripts/share-usb-network.sh
     online
 ```
 
----
-
-## Step 3 — Check what the board sees
+**PC:** now look at what the board found. Each of these runs one command on the
+board through `adb shell`.
 
 ```bash
 adb shell ls /sys/class/net
@@ -126,39 +138,73 @@ video1: camera-video.0.1
 Frames come from `/dev/video0`; camera controls like exposure live on
 `/dev/v4l-subdev2`.
 
+The microphones are ALSA capture device 2, `dummy-dmic`:
+
+```bash
+adb shell arecord -l
+```
+
+```
+**** List of CAPTURE Hardware Devices ****
+card 0: klamathasoc [klamath-asoc], device 0: asoc-i2s2 snd-soc-dummy-dai-0 []
+…
+card 0: klamathasoc [klamath-asoc], device 1: asoc-i2s3 snd-soc-dummy-dai-1 []
+…
+card 0: klamathasoc [klamath-asoc], device 2: dummy-dmic snd-soc-dummy-dai-2 []
+…
+```
+
 ---
 
 ## Step 4 — Connect Wi-Fi
 
 Following the
 [Synaptics user guide](https://developer.synaptics.com/docs/developer-kits/coralboard/sl/user-guide),
-create two config files and start the Wi-Fi service. In `adb shell`:
+create two config files and start the Wi-Fi service.
+
+**Board** (in `adb shell`):
 
 ```bash
 mkdir -p /etc/wpa_supplicant
+```
+
+```bash
 printf "ctrl_interface=/var/run/wpa_supplicant\nupdate_config=1\n" > /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+```
+
+```bash
 chmod 600 /etc/wpa_supplicant/wpa_supplicant-wlan0.conf
+```
+
+```bash
 printf "[Match]\nName=wlan0\n\n[Network]\nDHCP=ipv4\n" > /etc/systemd/network/25-wlan.network
+```
+
+```bash
 systemctl enable --now wpa_supplicant@wlan0.service
-systemctl restart systemd-networkd
 ```
 
 ```
 Created symlink /etc/systemd/system/multi-user.target.wants/wpa_supplicant@wlan0.service -> /usr/lib/systemd/system/wpa_supplicant@.service.
 ```
 
-See what's in range:
+```bash
+systemctl restart systemd-networkd
+```
+
+**Board:** see what's in range:
 
 ```bash
 wpa_cli -i wlan0 scan && sleep 8 && wpa_cli -i wlan0 scan_results
 ```
 
-Then join your network. Open `wpa_cli` and type, with your own network name
-and password:
+**Board:** join your network. Open `wpa_cli`:
 
 ```bash
 wpa_cli -i wlan0
 ```
+
+and type these at its `>` prompt, with your own network name and password:
 
 ```
 add_network
@@ -173,7 +219,7 @@ quit
 reboot. Watch for network names with curly apostrophes (`’`): a typed `'`
 won't match.
 
-Check it:
+**Board:** check it:
 
 ```bash
 wpa_cli -i wlan0 status | grep -E "^(wpa_state|ssid|key_mgmt|ip_address)="
@@ -186,22 +232,22 @@ wpa_state=COMPLETED
 ip_address=192.168.68.109
 ```
 
-You can now SSH in over Wi-Fi from any machine on your network, and the USB
-cable is down to supplying power:
+**PC:** you can now SSH in over Wi-Fi from any machine on your network, and the
+USB cable is down to supplying power:
 
 ```bash
 ssh root@192.168.68.109
 ```
 
 > **Security:** `root` has **no password** on the stock image, so anyone on
-> your network can log in ([K7](../README.md#k7)). Set one with `passwd` on the board if your network
-> isn't just yours.
+> your network can log in ([K7](../README.md#k7)). Set one with `passwd` on the
+> board if your network isn't just yours.
 
 ---
 
-## Step 5 — Object detection from the camera
+## Step 5 — Object detection
 
-In the board's shell, with the Python environment from walkthrough 1:
+**Board** (over SSH or `adb shell`), with the Python environment from walkthrough 1:
 
 ```bash
 cd /home/root/sl2610-examples && source .venv/bin/activate && cd object_detection
@@ -221,7 +267,7 @@ YOLOv8 nano (`yolov8-od-nano-320-int8-torq`), which the demo uses by default,
 and YOLO26 n/s (`yolov26n_od`), fetched at whatever its latest version is and
 only used if you pass it with `--model`.
 
-Run it on the camera, saving the annotated video:
+**Board:** run it on the camera, saving the annotated video:
 
 ```bash
 python3 run_cli.py --camera-device /dev/video0 --camera-control-device /dev/v4l-subdev2 --output /home/root/od_b.mp4 --json-results /home/root/od_b.json
@@ -240,7 +286,7 @@ Interrupted by user.
 Done. Processed 188 frames. Output: /home/root/od_b.mp4
 ```
 
-Copy the video back to your PC to watch it:
+**PC:** copy the video back to watch it:
 
 ```bash
 adb pull /home/root/od_b.mp4
@@ -263,25 +309,10 @@ auto exposure but no white balance. More light helps the detections too.
 
 ## Step 6 — The microphones
 
-The add-on's two PDM microphones appear as ALSA device `hw:0,2`:
-
-```bash
-arecord -l
-```
-
-```
-**** List of CAPTURE Hardware Devices ****
-card 0: klamathasoc [klamath-asoc], device 0: asoc-i2s2 snd-soc-dummy-dai-0 []
-…
-card 0: klamathasoc [klamath-asoc], device 1: asoc-i2s3 snd-soc-dummy-dai-1 []
-…
-card 0: klamathasoc [klamath-asoc], device 2: dummy-dmic snd-soc-dummy-dai-2 []
-…
-```
-
-Devices 0 and 1 are I2S inputs with nothing attached (`read error:
-Input/output error`). Device 2 only takes 24- or 32-bit audio with at least two
-channels, so ask for that:
+**Board:** record four seconds from the mics (ALSA device `hw:0,2`, from Step 3).
+It only takes 24- or 32-bit audio with at least two channels, so ask for that.
+(Devices 0 and 1 are I2S inputs with nothing attached; they give `read error:
+Input/output error`.)
 
 ```bash
 arecord -D hw:0,2 -f S32_LE -r 48000 -c 2 -d 4 /home/root/dmic.wav
@@ -291,7 +322,11 @@ arecord -D hw:0,2 -f S32_LE -r 48000 -c 2 -d 4 /home/root/dmic.wav
 Recording WAVE '/home/root/dmic.wav' : Signed 32 bit Little Endian, Rate 48000 Hz, Stereo
 ```
 
-Pull it back with `adb pull /home/root/dmic.wav` and play it on your PC.
+**PC:** pull it back and play it:
+
+```bash
+adb pull /home/root/dmic.wav
+```
 
 ### Speech to text
 
@@ -393,9 +428,7 @@ multimeter. Press Ctrl-C to quit.
 A long translation can print several times over when it's wider than your
 terminal. Widen the window to avoid it.
 
----
-
-## Step 7 — Shut down
+**PC:** when you're done, shut the board down before unplugging it:
 
 ```bash
 adb shell poweroff
