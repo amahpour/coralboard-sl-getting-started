@@ -11,7 +11,8 @@ outputs are trimmed where marked with `…`. Each command says where it runs:
 **Time:** about 45 minutes, most of it writing the SD card.
 **You need:** a Coralboard SL (the retail board), a 16 GB or larger microSD
 card rated C10/U1/V10 and A1, a USB microSD reader, a USB-C **data** cable, and
-a Linux PC with NetworkManager.
+a Linux PC with NetworkManager. (Windows and macOS work too; the few PC
+steps that differ are noted where they come up. Only Linux was tested here.)
 
 ---
 
@@ -35,6 +36,11 @@ Find two things on it:
 The tested image is Astra SDK `scarthgap_6.12_v2.6.1`. Google I/O edition
 boards aren't supported by this release; they boot from eMMC and need
 [v2.5.0](https://github.com/synaptics-astra/sdk/releases/tag/scarthgap_6.12_v2.5.0).
+
+(On Windows or macOS, skip the commands in this step: download the zip, open
+[Balena Etcher](https://etcher.balena.io/), choose **Flash from file**, pick the
+zip as-is, select the card, and click **Flash!** That's the method in
+Synaptics' [Getting started guide](https://developer.synaptics.com/docs/developer-kits/coralboard/sl/get-started).)
 
 **PC:** download it.
 
@@ -127,6 +133,11 @@ udisksctl power-off -b /dev/sda
 sudo apt install adb
 ```
 
+(Windows: download Google's
+[SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools),
+unzip it, and add the `platform-tools` folder to your `PATH`. macOS:
+`brew install android-platform-tools`.)
+
 ```bash
 adb devices -l
 ```
@@ -187,7 +198,10 @@ enx5a176425fae1:ethernet:connecting (getting IP configuration):Wired connection 
 ```
 
 **PC:** share your connection on it. Use your own `enx…` name. This lasts until
-the board disconnects.
+the board disconnects. (Windows and macOS: turn on internet sharing to the
+board's USB "NCM" adapter instead; see the
+[User Guide](https://developer.synaptics.com/docs/developer-kits/coralboard/sl/user-guide).
+The board-side command below is the same.)
 
 ```bash
 nmcli device modify enx5a176425fae1 ipv4.method shared ipv6.method ignore
@@ -208,7 +222,8 @@ udhcpc: lease of 10.42.0.28 obtained from 10.42.0.1, lease time 3600
 /etc/udhcpc.d/50default: Adding DNS 10.42.0.1
 ```
 
-Next time, one command on the PC does this step and the clock fix in Step 5:
+Next time, one command on the PC does this step and the clock fix in Step 5
+(Linux only):
 
 ```bash
 scripts/share-usb-network.sh
