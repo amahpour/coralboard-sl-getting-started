@@ -293,22 +293,105 @@ Recording WAVE '/home/root/dmic.wav' : Signed 32 bit Little Endian, Rate 48000 H
 
 Pull it back with `adb pull /home/root/dmic.wav` and play it on your PC.
 
-**The important bit for the voice demos:** they use PortAudio and ask which
-input device to use. These are the choices:
+### Speech to text
+
+Moonshine turns speech into text on the NPU.
+
+**Board:**
+
+```bash
+cd /home/root/sl2610-examples/speech_to_text && pip install -r requirements.txt && python setup_demo.py
+```
 
 ```
-0 klamath-asoc: - (hw:0,0) in: 8 sr: 44100
-1 klamath-asoc: - (hw:0,1) in: 8 sr: 44100
-2 klamath-asoc: - (hw:0,2) in: 8 sr: 44100
-3 sysdefault in: 128 sr: 44100
-4 default in: 128 sr: 44100
+[INFO    ] utils.model_setup: Resolving moonshine models: [tiny-en]
+[INFO    ] utils.model_setup: moonshine model files for version v2.3.0 ready at '/home/root/sl2610-examples/models/Synaptics/moonshine-tiny-bf16-torq'
 ```
 
-Pick the `(hw:0,2)` entry. It records fine at the 16 kHz the speech models
-want. **`default` hangs** and never returns audio, even though the demos'
-READMEs show it as the choice. ([Known issue K4](../README.md#k4))
+The demo reads keys as you type, so start it with `adb shell -t`.
 
-<!-- TODO: run speech_to_text / gemma_translate voice mode with hw:0,2 and capture output. -->
+**PC:**
+
+```bash
+adb shell -t 'cd /home/root/sl2610-examples && . .venv/bin/activate && cd speech_to_text && python run_cli.py'
+```
+
+It asks which microphone to use:
+
+```
+[NPU] NPU userspace max frequency applied
+List of Audio input devices:
+  0 klamath-asoc: - (plughw:0,0), ALSA (128 in, 128 out)
+  1 klamath-asoc: - (plughw:0,1), ALSA (128 in, 128 out)
+  2 klamath-asoc: - (plughw:0,2), ALSA (128 in, 0 out)
+  3 sysdefault, ALSA (128 in, 128 out)
+* 4 default, ALSA (128 in, 128 out)
+  5 dmix, ALSA (0 in, 2 out)
+Enter input device to listen on [default]:
+```
+
+Type `2`, the Sense mics. **Don't press Enter for `default`**: it hangs and
+never returns audio. ([K4](../README.md#k4))
+
+Then talk. Each pause ends a line:
+
+```
+Moonshine is running. Press Ctrl+C to quit.
+
+This is a test.
+To test the.
+Coral board
+I am testing the coral board right now can you understand what i'm saying
+```
+
+Press Ctrl-C to quit.
+
+### Speak and translate
+
+Walkthrough 1 typed into Gemma. Now speak to it: Moonshine hears you, Gemma
+translates, both on the NPU.
+
+**PC:**
+
+```bash
+adb shell -t 'cd /home/root/sl2610-examples && . .venv/bin/activate && cd gemma_translate && python run_cli.py'
+```
+
+Gemma takes about 30 seconds to load. Type `2` at the same device prompt, then
+speak. Press a number key to switch language.
+
+```
+=== Astra SL2610 Voice Translation Engine ===
+Press a listed number to change language:
+  1: Spanish
+  2: French
+  3: German
+  4: Portuguese
+  5: Bahasa Indonesia
+Speak to translate. Press Ctrl+C to exit.
+
+[Ready] Listening...
+[You] Where is the train station?  (296ms | RTF(audio)=0.17)
+[Translation] "¿Dónde está el estación de tren?"  (TTFT=1046ms | 18.5 tok/s)
+
+[Ready] Listening...
+
+[Language changed to: French]
+…
+[You] But why?  (238ms | RTF(audio)=0.23)
+[Translation] "Mais pourquoi ?"  (TTFT=912ms | 18.3 tok/s)
+
+[Ready] Listening...
+[You] Because the record player is broken.  (309ms | RTF(audio)=0.14)
+[Translation] "Parce que le multimètre est cassé."  (TTFT=1091ms | 19.9 tok/s)
+```
+
+Speech to text takes about 300 ms. The first translated word comes about a
+second later. The 270M model still slips: a record player became a
+multimeter. Press Ctrl-C to quit.
+
+A long translation can print several times over when it's wider than your
+terminal. Widen the window to avoid it.
 
 ---
 
