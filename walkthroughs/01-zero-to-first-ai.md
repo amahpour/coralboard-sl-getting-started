@@ -211,6 +211,8 @@ nmcli device modify enx5a176425fae1 ipv4.method shared ipv6.method ignore
 Connection successfully reapplied to device 'enx5a176425fae1'.
 ```
 
+(If it says you're not authorized, run the same command with `sudo` in front.)
+
 **Board:** ask for an address:
 
 ```bash
@@ -246,6 +248,9 @@ git clone --recurse-submodules https://github.com/synaptics-astra-demos/sl2610-e
 ```
 fatal: unable to access 'https://github.com/synaptics-astra-demos/sl2610-examples/': SSL certificate problem: certificate is not yet valid
 ```
+
+(This depends on timing. If time sync catches up on its own before you clone,
+the clone just works and you can skip ahead to the Python environment.)
 
 The board has no battery-backed clock:
 
