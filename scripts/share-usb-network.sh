@@ -8,16 +8,18 @@
 # stuck at "connecting (getting IP configuration)" because nothing on that link
 # serves DHCP. This script:
 #
-#   1. Host:  switches that interface to NetworkManager's "shared" mode
-#             (host becomes 10.42.0.1, runs DHCP + NAT). The change applies to
-#             the live device only and is gone once the board disconnects.
+#   1. Host:  activates an in-memory NetworkManager profile in "shared" mode
+#             (host becomes 10.42.0.1, runs DHCP + NAT). The profile is never
+#             written to disk, does not autoconnect, and is gone after a reboot.
+#             Re-run this script after replugging the board.
 #   2. Board: over ADB, requests a lease on usb0 and restarts time sync. The
 #             board has no RTC and boots with a stale clock, which breaks
 #             HTTPS (`certificate is not yet valid`) until NTP runs.
 #
 # Usage:  scripts/share-usb-network.sh [host-interface]
 #
-# Requires: nmcli (NetworkManager), adb.
+# Requires: nmcli (NetworkManager), adb, sudo. Only nmcli runs through sudo, so
+# adb keeps using your user's authorized keys.
 
 set -euo pipefail
 
@@ -43,7 +45,18 @@ fi
 [[ -e "/sys/class/net/$iface" ]] || die "interface '$iface' does not exist"
 
 echo "==> Host: sharing network on $iface"
-nmcli device modify "$iface" ipv4.method shared ipv6.method ignore >/dev/null
+# `nmcli device modify` only works on an active connection, and this device
+# spends most of its time disconnected between failed DHCP attempts, so bring
+# up a dedicated profile instead.
+profile="coral-usb-share"
+nm() { if (( EUID == 0 )); then nmcli "$@"; else sudo nmcli "$@"; fi; }
+
+if nm -g NAME connection show | grep -Fxq "$profile"; then
+    nm connection delete "$profile" >/dev/null
+fi
+nm connection add save no type ethernet ifname "$iface" con-name "$profile" \
+    autoconnect no ipv4.method shared ipv6.method ignore >/dev/null
+nm connection up "$profile" >/dev/null
 
 for _ in $(seq 1 10); do
     ip -4 addr show "$iface" | grep -q 'inet ' && break
@@ -57,16 +70,30 @@ echo "==> Board: waiting for ADB"
 adb wait-for-device
 
 echo "==> Board: requesting a DHCP lease on usb0"
-adb shell 'udhcpc -i usb0 -n -q' 2>&1 | grep -E 'lease|fail' | sed 's/^/    /' || true
+host_ip="$(ip -4 -o addr show "$iface" | awk '{split($4, a, "/"); print a[1]; exit}')"
+if ! lease_output="$(adb shell 'udhcpc -i usb0 -n -q' 2>&1)"; then
+    echo "$lease_output" | sed 's/^/    /' >&2
+    die "board got no DHCP lease from $host_ip. Check the host firewall: sudo ufw status verbose"
+fi
+echo "$lease_output" | tr -d '\r' | grep -E 'lease|fail' | sed 's/^/    /' || true
+adb shell ip route | tr -d '\r' | grep -q "^default via $host_ip " \
+    || die "board has no default route via $host_ip after DHCP"
 
 echo "==> Board: syncing the clock"
 adb shell 'systemctl restart systemd-timesyncd'
-for _ in $(seq 1 15); do
-    year="$(adb shell date +%Y | tr -d '\r')"
-    [[ "$year" -ge "$(date +%Y)" ]] && break
+max_drift=60
+synced=false
+for _ in $(seq 1 30); do
+    board_epoch="$(adb shell date +%s | tr -d '\r')"
+    drift=$(( $(date +%s) - ${board_epoch:-0} ))
+    if (( drift < max_drift && drift > -max_drift )); then
+        synced=true
+        break
+    fi
     sleep 1
 done
 echo "    board time: $(adb shell date | tr -d '\r')"
+$synced || die "board clock is still ${drift}s off the host. NTP may be blocked (sudo iptables -S FORWARD)"
 
 echo "==> Board: checking internet"
 if adb shell 'ping -c1 -W3 github.com >/dev/null 2>&1'; then
